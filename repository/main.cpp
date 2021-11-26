@@ -1,11 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
 #include <windows.h>
-
-//#include <chrono>
-//#include <thread>
 #include "mpi.h"
 
 int input(const char* fn, int*& serial_num, int*& cores, size_t* num_of_tasks)
@@ -33,7 +29,6 @@ int input(const char* fn, int*& serial_num, int*& cores, size_t* num_of_tasks)
 	return 0;
 }
 
-
 int sort_tasks(int* serial_num, int* procs, int**& how_to_run, const int& numprocs, const size_t& num_of_tasks)
 {
 	int number_of_starts = 0; // total number of starts
@@ -42,7 +37,7 @@ int sort_tasks(int* serial_num, int* procs, int**& how_to_run, const int& numpro
 	for (int i = 0; i < num_of_tasks; i++) {
 		int j;
 
-		int min = numprocs + 1; //min of remeining procs in all starts 
+		int min = numprocs + 1; //min of remeining procs in all starts
 		int seq_num = 0; //the sequence number of the start with the minimum number of processors remaining
 
 		for (j = 0; j < number_of_starts; j++) {
@@ -91,35 +86,69 @@ int main(int argc, char** argv)
 	size_t num_of_tasks = 0; //total number of tasks
 	int* serial_num; //array of (serial number of task)
 	int* procs; //array of (procs per task)
-	int* start_to_run; // on which processor to run
 	err = input("table.txt", serial_num, procs, &num_of_tasks);
 	if (err) return -1;
-
+	MPI_Status status;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+
 	int** how_to_run;
 	num_of_starts = sort_tasks(serial_num, procs, how_to_run, numprocs, num_of_tasks);
 
-	for (i = 0; i < num_of_starts; i++)
+	int* ids = new int[numprocs];
+	int* tasks = new int[numprocs];
+	for (j = 0; j < num_of_starts; j++)
 	{
 		MPI_Barrier(MPI_COMM_WORLD);
-		if (how_to_run[i][myid] != -1)
+		if (!myid)
 		{
-			std::cout << "the task " << how_to_run[i][myid] << " started on the processor " << myid << " \n";
-;
+			for (i = 1; i < numprocs; i++)
+			{
+				MPI_Recv(&tasks[i], 1,
+					MPI_INT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
+				MPI_Recv(&ids[i], 1, MPI_INT, MPI_ANY_SOURCE, 2, MPI_COMM_WORLD, &status);
+			}
+			tasks[0] = how_to_run[j][myid];
+			ids[0] = 0;
+			for (int k = 0; k < numprocs; k++)if (tasks[k] != -1)std::cout << "the task " << tasks[k] << " started on the processor " << ids[k] << " \n";
+			//Sleep(1000);
+			std::cout << "\n";
+			for (int k = 0; k < numprocs; k++)if (tasks[k] != -1)std::cout << "the task " << tasks[k] << " finished on the processor " << ids[k] << " \n";
+			std::cout << "-------------------------------------------------------------------------------\n";
 		}
-		//Sleep(100);
-		if (how_to_run[i][myid] != -1)
-		{
-			std::cout << "the task " << how_to_run[i][myid] << " has finished running on the processor " << myid << " \n";
+		else {
+			MPI_Send(&how_to_run[j][myid], 1, MPI_INT, 0, 1, MPI_COMM_WORLD);
+			MPI_Send(&myid, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
 		}
-		if (myid == 0) std::cout << "----------------------------------------------------------------------------------------------------------------------\n";
 	}
-	MPI_Finalize();
 
+	MPI_Finalize();
+	delete[] tasks;
+	delete[] ids;
 	delete[] procs;
 	delete[] serial_num;
 	delete[] how_to_run;
 	return 0;
 }
+
+
+
+
+/*for (i = 0; i < num_of_starts; i++)
+{
+MPI_Barrier(MPI_COMM_WORLD);
+if (how_to_run[i][myid] != -1)
+{
+std::cout « "the task " « how_to_run[i][myid] « " started on the processor " « myid « " \n";
+//std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+//std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(1));
+}
+//Sleep(100);
+
+if (how_to_run[i][myid] != -1)
+{
+std::cout « "the task " « how_to_run[i][myid] « " has finished running on the processor " « myid « " \n";
+}
+if (myid == 0) std::cout « "----------------------------------------------------------------------------------------------------------------------\n";
+}*/
