@@ -1,0 +1,10 @@
+^C:\PROJECTS\SOLVER_AGENT\BUILD\CMAKEFILES\C11228C757FFC2B48B527EA38F0AF304\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/projects/solver_agent/repository -BC:/projects/solver_agent/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/projects/solver_agent/build/solver_agent.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

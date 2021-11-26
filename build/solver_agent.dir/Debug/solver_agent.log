@@ -1,0 +1,2 @@
+﻿  main.cpp
+C:\projects\solver_agent\repository\main.cpp(102,59): error C2065: 'procs_to_run': undeclared identifier
